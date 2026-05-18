@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 export default function Login(){
   const [err,setErr]=useState('');
   async function submit(e:any){
@@ -12,6 +13,7 @@ export default function Login(){
   }
   return (
     <main className='page card'>
+      <Link href='/' style={{fontWeight:'bold',display:'inline-block',marginBottom:'16px'}}>â Back</Link>
       <h2>Login</h2>
       <form onSubmit={submit} className='grid'>
         <input name='username' required/>
