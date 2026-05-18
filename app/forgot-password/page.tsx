@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 export default function Forgot(){
   const [msg,setMsg]=useState('');
   const [err,setErr]=useState('');
@@ -13,6 +14,7 @@ export default function Forgot(){
   }
   return(
     <main className='page card'>
+      <Link href='/login' style={{fontWeight:'bold',display:'inline-block',marginBottom:'16px'}}>â Back to Login</Link>
       <h2>Reset Password</h2>
       <form onSubmit={submit} className='grid'>
         <input name='username' required/>
