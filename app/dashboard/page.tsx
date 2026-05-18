@@ -68,7 +68,7 @@ export default function Dashboard() {
 
         <section className='card'>
           <h3>Quick Links</h3>
-          <div style={{display:'flex',flexDirection:'wcolumn',gap:'8px'}}>
+          <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
             <Link href='/train/job'><button style={{width:'100%'}}>Train by Job</button></Link>
             <Link href='/train/skill'><button style={{width:'100%'}}>Train by Skill</button></Link>
             <Link href='/progress'><button style={{width:'100%'}}>View Progress</button></Link>
