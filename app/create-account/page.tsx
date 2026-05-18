@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 export default function Create(){
   const [recovery,setRecovery]=useState('');
   const [saved,setSaved]=useState(false);
@@ -14,6 +15,7 @@ export default function Create(){
   }
   if(recovery) return(
     <main className='page card'>
+      <Link href='/' style={{fontWeight:'bold',display:'inline-block',marginBottom:'16px'}}>â Back</Link>
       <h2>Save your recovery code</h2>
       <p><code>{recovery}</code></p>
       <button onClick={()=>navigator.clipboard.writeText(recovery)}>Copy Code</button><br/>
@@ -23,6 +25,7 @@ export default function Create(){
   );
   return(
     <main className='page card'>
+      <Link href='/' style={{fontWeight:'bold',display:'inline-block',marginBottom:'16px'}}>â Back</Link>
       <h2>Create Account</h2>
       <form onSubmit={submit} className='grid'>
         <input name='username' placeholder='username' required/>
