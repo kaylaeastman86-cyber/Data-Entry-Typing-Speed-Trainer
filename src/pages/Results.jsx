@@ -2,9 +2,15 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 const backBtnStyle = {
   position: 'absolute', top: '1rem', left: '1rem',
-  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-  color: '#fff', padding: '0.4rem 1rem', borderRadius: '999px',
-  cursor: 'pointer', fontSize: '0.875rem', zIndex: 10
+  background: 'rgba(0,0,0,0.3)',
+  border: '1px solid rgba(255,255,255,0.3)',
+  color: '#fff',
+  padding: '0.4rem 1.2rem',
+  borderRadius: '999px',
+  cursor: 'pointer',
+  fontSize: '0.85rem',
+  backdropFilter: 'blur(4px)',
+  zIndex: 10
 }
 
 const getGrade = (score) => {
@@ -40,16 +46,16 @@ export default function Results() {
   const nextGrade = getNextGrade(score)
 
   const getImprovementTip = () => {
-    if (wpm >= 35 && accuracy >= 95) {
-      return { icon: '&#127878;', title: 'You\'re on fire!', msg: 'Both speed and accuracy are excellent. Keep it up and push for A+!' }
+    if (wpm < 30 && accuracy >= 90) {
+      return { icon: '&#9889;', title: 'Focus on Speed', msg: 'Your accuracy is solid — now push yourself to type a bit faster. Aim for 30+ WPM.' }
     }
     if (accuracy < 90) {
-      return { icon: '&#127919;', title: 'Focus on Accuracy', msg: `Your accuracy is ${accuracy}%. Slow down slightly and aim for 95%+ before pushing speed. Accuracy matters more than raw speed for data entry.` }
+      return { icon: '&#127919;', title: 'Focus on Accuracy', msg: `Slow down and hit every key correctly. Aim for 90%+ accuracy before pushing speed.` }
     }
-    if (wpm < 30) {
-      return { icon: '&#9889;', title: 'Focus on Speed', msg: `Your accuracy is great (${accuracy}%), but speed is ${wpm} WPM. Try to push past 30 WPM by typing familiar words without hesitation.` }
+    if (wpm >= 35 && accuracy >= 94) {
+      return { icon: '&#127878;', title: 'Job Ready!', msg: 'Great speed and accuracy — keep maintaining this level!' }
     }
-    return { icon: '&#128200;', title: 'Keep Pushing', msg: `You're at ${wpm} WPM with ${accuracy}% accuracy. Aim for 35+ WPM and 95%+ accuracy to reach job-ready level.` }
+    return { icon: '&#128200;', title: 'Good Progress!', msg: `You're at ${wpm} WPM with ${accuracy}% accuracy. Keep practicing to build consistency.` }
   }
 
   const tip = getImprovementTip()
