@@ -11,16 +11,16 @@ const VOICE_JOB_IDS = ['receptionist', 'customer_service', 'virtual_assistant']
 
 // Bug 6: job mode requires a minimum session length
 const JOB_REQUIREMENTS = {
-  'data-entry-clerk':           { minMinutes: 5 },
-  'administrative-assistant':   { minMinutes: 5 },
-  'customer-service-rep':       { minMinutes: 5 },
-  'receptionist-front-desk':    { minMinutes: 5 },
-  'medical-office-assistant':   { minMinutes: 5 },
-  'billing-invoice-clerk':      { minMinutes: 3 },
-  'accounting-bookkeeping':     { minMinutes: 3 },
-  'warehouse-inventory':        { minMinutes: 3 },
-  'ecommerce-order-processor':  { minMinutes: 5 },
-  'remote-virtual-assistant':   { minMinutes: 5 },
+  'data_entry_clerk':      { minMinutes: 5 },
+  'admin_assistant':       { minMinutes: 5 },
+  'customer_service':      { minMinutes: 5 },
+  'receptionist':          { minMinutes: 5 },
+  'medical_office':        { minMinutes: 5 },
+  'billing_clerk':         { minMinutes: 3 },
+  'accounting_assistant':  { minMinutes: 3 },
+  'warehouse_clerk':       { minMinutes: 3 },
+  'ecommerce_processor':   { minMinutes: 5 },
+  'virtual_assistant':     { minMinutes: 5 },
 }
 
 const backBtnStyle = {
