@@ -106,26 +106,6 @@ export const prompts = {
     '9400111899223395496355', '1ZA4R6110390415286', '73891098765432',
     '9261290100130318337256', '420102019400111899001',
   ],
-  mixed: [
-    'Name: Sarah Mitchell | Phone: (503) 555-0247 | Email: s.mitchell@email.com',
-    'Order: ORD-2024-008712 | Customer: CUST-47821 | Amount: $234.50',
-    'Invoice: INV-2024-003891 | Account: ACC-238910045 | Due: 03/15/2024',
-    'Name: Carlos Reyes | Address: 4417 Oak Lane, Miami, FL 33101 | ID: CUST-83201',
-    'SKU: SKU-BLK-034-LG | Qty: 24 | Price: $18.99 | Order: ORD-2024-011293',
-    'Patient: John Doe | DOB: 05/12/1985 | ID: CUST-29847 | Visit: 01/08/2024',
-    'Tracking: 1Z999AA10123456784 | Order: ORD-2024-009012 | Status: Shipped',
-    'Name: Linda Foster | Email: lfoster@company.org | Phone: (404) 555-0918',
-    'Account: ACC-100247890 | Balance: $5,830.25 | Date: 12/01/2023',
-    'Item: SKU-WHT-023-MD | Track: 9400111899223422145131 | Ship: 02/14/2024',
-    'Customer: Marcus Webb | Address: 9918 Pine St, Dallas, TX 75201 | Date: 04/20/2024',
-    'Invoice: INV-2025-000198 | Amount: $1,247.50 | Account: ACC-315047623',
-  ],
-  tenKey: [
-    '47382910', '85623047', '19283746', '73629481', '54821639',
-    '28374651', '96473821', '31729465', '64821937', '82736451',
-    '5739281046', '3846291057', '9172638405', '4028371956', '7364829105',
-    '182736450918', '937462810527', '628374910536', '471836290574', '839271046258',
-  ],
   customerNotes: [
     'Customer called to update billing address. New address confirmed and saved.',
     'Client requested expedited shipping. Upgrade applied to Priority 2-day.',
@@ -147,6 +127,26 @@ export const prompts = {
     'Customer requested do not contact list. Preference updated in system.',
     'Order confirmed and payment processed. Confirmation email sent to customer.',
     'Feedback survey completed. Customer gave 5 stars and left positive comment.',
+  ],
+  mixed: [
+    'Name: Sarah Mitchell | Phone: (503) 555-0247 | Email: s.mitchell@email.com',
+    'Order: ORD-2024-008712 | Customer: CUST-47821 | Amount: $234.50',
+    'Invoice: INV-2024-003891 | Account: ACC-238910045 | Due: 03/15/2024',
+    'Name: Carlos Reyes | Address: 4417 Oak Lane, Miami, FL 33101 | ID: CUST-83201',
+    'SKU: SKU-BLK-034-LG | Qty: 24 | Price: $18.99 | Order: ORD-2024-011293',
+    'Patient: John Doe | DOB: 05/12/1985 | ID: CUST-29847 | Visit: 01/08/2024',
+    'Tracking: 1Z999AA10123456784 | Order: ORD-2024-009012 | Status: Shipped',
+    'Name: Linda Foster | Email: lfoster@company.org | Phone: (404) 555-0918',
+    'Account: ACC-100247890 | Balance: $5,830.25 | Date: 12/01/2023',
+    'Item: SKU-WHT-023-MD | Track: 9400111899223422145131 | Ship: 02/14/2024',
+    'Customer: Marcus Webb | Address: 9918 Pine St, Dallas, TX 75201 | Date: 04/20/2024',
+    'Invoice: INV-2025-000198 | Amount: $1,247.50 | Account: ACC-315047623',
+  ],
+  tenKey: [
+    '47382910', '85623047', '19283746', '73629481', '54821639',
+    '28374651', '96473821', '31729465', '64821937', '82736451',
+    '5739281046', '3846291057', '9172638405', '4028371956', '7364829105',
+    '182736450918', '937462810527', '628374910536', '471836290574', '839271046258',
   ],
   typing: [
     'Please review the attached report and submit your feedback by end of business Friday.',
@@ -189,3 +189,37 @@ export const getDailyPrompts = () => {
     email: rand(prompts.emails),
   }
 }
+
+// Voice Call Scenarios -- used for Listen & Type mode
+// Jobs: receptionist, customer_service, virtual_assistant
+export const voiceCallScenarios = [
+  // Receptionist scenarios
+  "Good morning, thank you for calling Riverside Medical Group. How may I direct your call?",
+  "Please hold while I transfer you to our billing department. Your estimated wait time is two minutes.",
+  "I'm sorry, Dr. Patel is unavailable at the moment. Would you like to leave a message or schedule a callback?",
+  "To confirm your appointment, please provide your date of birth and the last four digits of your insurance ID.",
+  "Thank you for calling Lakeside Dental. Our office hours are Monday through Friday, eight AM to five PM.",
+  "I'll need to verify your information before I can access your account. Can you spell your last name for me?",
+  "Your appointment is confirmed for Thursday, June fifth at two thirty PM with Dr. Rodriguez.",
+  "Please be aware that our office will be closed on Monday for the holiday. We reopen Tuesday morning.",
+
+  // Customer Service scenarios
+  "Thank you for calling customer support. My name is Alex. How can I assist you today?",
+  "I understand your frustration and I sincerely apologize for the inconvenience this has caused.",
+  "I've located your order number ending in four seven two. It shows as shipped on the twelfth.",
+  "To process your refund, I'll need your original order confirmation number and the email on the account.",
+  "Your replacement item will arrive within three to five business days at no additional charge.",
+  "I'm escalating your case to our senior team. You'll receive a call within twenty-four hours.",
+  "Is there anything else I can help you with today before I close out this ticket?",
+  "We value your feedback and I'll make sure this is noted for quality assurance purposes.",
+
+  // Virtual Assistant scenarios
+  "Your two o'clock meeting with the marketing team has been moved to three thirty this afternoon.",
+  "I've sent the agenda to all attendees and booked Conference Room B for the two-hour session.",
+  "The quarterly report is due Friday. I've drafted a reminder email to the department heads.",
+  "Your flight to Chicago departs at six forty AM from Terminal C, Gate twenty-two.",
+  "I've rescheduled your dentist appointment to next Wednesday at eleven AM as requested.",
+  "The invoice from Apex Solutions for four thousand eight hundred dollars is ready for your approval.",
+  "Your LinkedIn message from Sarah Jenkins has been flagged as high priority pending your response.",
+  "I've compiled the research notes into a document and shared it to your Google Drive folder.",
+]
