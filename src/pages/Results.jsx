@@ -34,7 +34,7 @@ export default function Results() {
   const nextGrade = getNextGrade(score)
 
   // Bug 5: Badge check — show first session badge right after session
-  const sessions = JSON.parse(localStorage.getItem('hol_sessions') || '[]')
+  const sessions = getSessions(getCurrentUser())
   const isFirstSession = sessions.length === 1
 
   const getImprovementTip = () => {
