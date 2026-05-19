@@ -166,34 +166,33 @@ export default function Results() {
           )}
         </div>
 
-        <div sty
-          {/* First session badge */}
-          {(() => {
-            const user = getCurrentUser()
-            const sessions = getSessions(user)
-            if (sessions.length === 1) {
-              return (
-                <div style={{
-                  background: 'rgba(251,191,36,0.15)',
-                  border: '2px solid rgba(251,191,36,0.5)',
-                  borderRadius: '1rem',
-                  padding: '1.5rem',
-                  textAlign: 'center',
-                  marginBottom: '1.5rem'
-                }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🏅</div>
-                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#fbbf24', marginBottom: '0.25rem' }}>
-                    Badge Unlocked: First Session!
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
-                    You completed your first training session. Keep it up!
-                  </div>
+        {/* First session badge */}
+        {(() => {
+          const user = getCurrentUser()
+          const sessions = getSessions(user)
+          if (sessions.length === 1) {
+            return (
+              <div style={{
+                background: 'rgba(251,191,36,0.15)',
+                border: '2px solid rgba(251,191,36,0.5)',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                textAlign: 'center',
+                marginBottom: '1.5rem'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🏅</div>
+                <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#fbbf24', marginBottom: '0.25rem' }}>
+                  Badge Unlocked: First Session!
                 </div>
-              )
-            }
-            return null
-          })()}le={cardStyle}>
-          <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
+                  You completed your first training session. Keep it up!
+                </div>
+              </div>
+            )
+          }
+          return null
+        })()}
+        <div style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             {tip.icon} {tip.title}
           </h3>
           <p style={{ margin: 0, fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)', lineHeight: '1.5' }}>
