@@ -9,6 +9,20 @@ import { JOBS } from '../utils/jobs.js'
 const DURATIONS = [60, 180, 300]
 const VOICE_JOB_IDS = ['receptionist', 'customer_service', 'virtual_assistant']
 
+// Bug 6: job mode requires a minimum session length
+const JOB_REQUIREMENTS = {
+  'data-entry-clerk':           { minMinutes: 5 },
+  'administrative-assistant':   { minMinutes: 5 },
+  'customer-service-rep':       { minMinutes: 5 },
+  'receptionist-front-desk':    { minMinutes: 5 },
+  'medical-office-assistant':   { minMinutes: 5 },
+  'billing-invoice-clerk':      { minMinutes: 3 },
+  'accounting-bookkeeping':     { minMinutes: 3 },
+  'warehouse-inventory':        { minMinutes: 3 },
+  'ecommerce-order-processor':  { minMinutes: 5 },
+  'remote-virtual-assistant':   { minMinutes: 5 },
+}
+
 const backBtnStyle = {
   position: 'absolute', top: '1rem', left: '1rem',
   background: 'rgba(0,0,0,0.3)',
@@ -31,6 +45,10 @@ export default function Practice() {
   const jobId = params.get('job')
   const skillParam = params.get('skill') || 'typing'
 
+  // Bug 6: derive locked duration for job mode before state init
+  const isJobMode = mode === 'job'
+  const lockedDuration = isJobMode ? (JOB_REQUIREMENTS[jobId]?.minMinutes || 5) * 60 : null
+
   const getSkillKey = () => {
     if (mode === 'job') {
       const job = JOBS.find(j => j.id === jobId)
@@ -41,10 +59,11 @@ export default function Practice() {
   }
 
   const [phase, setPhase] = useState('setup')
-  const [duration, setDuration] = useState(60)
+  // Bug 6: pre-set duration to locked value in job mode
+  const [duration, setDuration] = useState(isJobMode ? (lockedDuration || 300) : 60)
   const [prompt, setPrompt] = useState('')
   const [typed, setTyped] = useState('')
-  const [timeLeft, setTimeLeft] = useState(60)
+  const [timeLeft, setTimeLeft] = useState(isJobMode ? (lockedDuration || 300) : 60)
   const [startTime, setStartTime] = useState(null)
   const [errors, setErrors] = useState(0)
   const [totalCorrectChars, setTotalCorrectChars] = useState(0)
@@ -60,7 +79,7 @@ export default function Practice() {
   const promptRef = useRef('')
   const totalCorrectRef = useRef(0)
   const errorsRef = useRef(0)
-  const durationRef = useRef(60)
+  const durationRef = useRef(isJobMode ? (lockedDuration || 300) : 60)
   const promptsCompletedRef = useRef(0)
 
   const isVoiceJob = mode === 'job' && VOICE_JOB_IDS.includes(jobId)
@@ -249,17 +268,31 @@ export default function Practice() {
               mode === 'daily' ? 'Daily Challenge' :
                 `Skill: ${skillParam.charAt(0).toUpperCase() + skillParam.slice(1)}`}
           </p>
-          <div style={{ marginBottom: '2rem' }}>
-            <p style={{ fontWeight: 600, marginBottom: '0.75rem', color: 'var(--grey-700)' }}>Choose Session Length</p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-              {DURATIONS.map(d => (
-                <button key={d} onClick={() => setDuration(d)} className="btn btn-lg"
-                  style={{ background: duration === d ? 'var(--blue)' : 'var(--grey-200)', color: duration === d ? 'var(--white)' : 'var(--grey-700)', minWidth: 90 }}>
-                  {d === 60 ? '1 min' : d === 180 ? '3 min' : '5 min'}
-                </button>
-              ))}
+
+          {/* Bug 6 fix: lock duration selector in job mode */}
+          {isJobMode ? (
+            <div style={{ marginBottom: '2rem' }}>
+              <p style={{ fontWeight: 600, marginBottom: '0.25rem', color: 'var(--grey-700)' }}>
+                &#9201; Session length: {(lockedDuration || 300) / 60} minutes (required)
+              </p>
+              <p style={{ fontSize: '0.85rem', color: 'var(--grey-500)', margin: 0 }}>
+                Job training sessions use a fixed duration to match real job requirements.
+              </p>
             </div>
-          </div>
+          ) : (
+            <div style={{ marginBottom: '2rem' }}>
+              <p style={{ fontWeight: 600, marginBottom: '0.75rem', color: 'var(--grey-700)' }}>Choose Session Length</p>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                {DURATIONS.map(d => (
+                  <button key={d} onClick={() => setDuration(d)} className="btn btn-lg"
+                    style={{ background: duration === d ? 'var(--blue)' : 'var(--grey-200)', color: duration === d ? 'var(--white)' : 'var(--grey-700)', minWidth: 90 }}>
+                    {d === 60 ? '1 min' : d === 180 ? '3 min' : '5 min'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button className="btn btn-primary btn-lg" style={{ minWidth: 200 }} onClick={() => startSession(false)}>
               Start Session &#8594;
