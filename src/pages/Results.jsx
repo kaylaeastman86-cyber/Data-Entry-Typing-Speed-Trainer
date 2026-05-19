@@ -39,7 +39,6 @@ export default function Results() {
   const grade = getGrade(score)
   const nextGrade = getNextGrade(score)
 
-  // What to improve logic
   const getImprovementTip = () => {
     if (wpm >= 35 && accuracy >= 95) {
       return { icon: '&#127878;', title: 'You\'re on fire!', msg: 'Both speed and accuracy are excellent. Keep it up and push for A+!' }
@@ -64,7 +63,7 @@ export default function Results() {
 
   return (
     <div className="results-page" style={{ position: 'relative', minHeight: '100vh' }}>
-      <button onClick={() => navigate('/')} style={backBtnStyle}>&#8592; Back</button>
+      <button onClick={() => navigate(-1)} style={backBtnStyle}>&#8592; Back</button>
 
       <div className="results-container">
         <h1 className="results-title">Session Complete!</h1>
@@ -101,7 +100,6 @@ export default function Results() {
           </div>
         </div>
 
-        {/* Score Breakdown */}
         <div className="breakdown-card" style={{
           background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: '12px', padding: '1.25rem 1.5rem', marginTop: '1.5rem', textAlign: 'left'
@@ -121,14 +119,12 @@ export default function Results() {
           )}
         </div>
 
-        {/* What to Improve */}
         <div className="improvement-card" style={{
           background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: '12px', padding: '1.25rem 1.5rem', marginTop: '1rem', textAlign: 'left'
         }}>
-          <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            {tip.icon} {tip.title}
-          </h3>
+          <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+            dangerouslySetInnerHTML={{ __html: `${tip.icon} ${tip.title}` }} />
           <p style={{ margin: 0, fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)', lineHeight: '1.5' }}>
             {tip.msg}
           </p>
