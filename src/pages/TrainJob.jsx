@@ -4,9 +4,15 @@ import { getSessions, getCurrentUser } from '../utils/storage'
 
 const backBtnStyle = {
   position: 'absolute', top: '1rem', left: '1rem',
-  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-  color: '#fff', padding: '0.4rem 1rem', borderRadius: '999px',
-  cursor: 'pointer', fontSize: '0.875rem', zIndex: 10
+  background: 'rgba(0,0,0,0.3)',
+  border: '1px solid rgba(255,255,255,0.3)',
+  color: '#fff',
+  padding: '0.4rem 1.2rem',
+  borderRadius: '999px',
+  cursor: 'pointer',
+  fontSize: '0.85rem',
+  backdropFilter: 'blur(4px)',
+  zIndex: 10
 }
 
 // Per-job requirements for graduation — keyed by job ID
@@ -71,7 +77,7 @@ export default function TrainJob() {
   const sessions = getSessions(getCurrentUser())
 
   return (
-    <div className="train-job-page" style={{ position: 'relative', minHeight: '100vh' }}>
+    <div className="train-job-page" style={{ position: 'relative', minHeight: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)', color: '#fff' }}>
       <button onClick={() => navigate(-1)} style={backBtnStyle}>&#8592; Back</button>
 
       <div className="train-job-container">
