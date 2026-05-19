@@ -11,9 +11,15 @@ const VOICE_JOB_IDS = ['receptionist', 'customer_service', 'virtual_assistant']
 
 const backBtnStyle = {
   position: 'absolute', top: '1rem', left: '1rem',
-  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-  color: '#fff', padding: '0.4rem 1rem', borderRadius: '999px',
-  cursor: 'pointer', fontSize: '0.875rem', zIndex: 10
+  background: 'rgba(0,0,0,0.3)',
+  border: '1px solid rgba(255,255,255,0.3)',
+  color: '#fff',
+  padding: '0.4rem 1.2rem',
+  borderRadius: '999px',
+  cursor: 'pointer',
+  fontSize: '0.85rem',
+  backdropFilter: 'blur(4px)',
+  zIndex: 10
 }
 
 export default function Practice() {
@@ -155,7 +161,22 @@ export default function Practice() {
       }
       addSession(username, newSession)
       const newBadges = checkAndAwardBadges(username, { wpm, accuracy, kph, skill: skillKey.current })
-      navigate(`/results?wpm=${wpm}&accuracy=${accuracy}&errors=${finalErrors}&score=${score}&skill=${skillKey.current}&kph=${kph}&xp=${xpEarned}&badges=${newBadges.join(',')}`)
+      navigate('/results', {
+        state: {
+          wpm,
+          accuracy,
+          errors: finalErrors,
+          score,
+          skill: skillKey.current,
+          kph,
+          xp: xpEarned,
+          badges: newBadges,
+          mode,
+          duration: dur,
+          promptsCompleted: promptsCompletedRef.current,
+          totalErrors: finalErrors
+        }
+      })
     }
   }, [phase])
 
@@ -260,7 +281,7 @@ export default function Practice() {
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
                 <button className="btn btn-primary" onClick={() => speakPrompt(prompt)}>&#9654; Play / Replay</button>
                 <button className="btn btn-secondary" onClick={() => setPromptRevealed(v => !v)}>
-                  {promptRevealed ? '&#128065; Hide Prompt' : '&#128065; Show Prompt'}
+                  {promptRevealed ? '👁️ Hide Prompt' : '👁️ Show Prompt'}
                 </button>
               </div>
             </div>
