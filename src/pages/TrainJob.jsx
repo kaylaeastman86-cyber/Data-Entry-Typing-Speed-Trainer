@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { JOBS } from '../data/jobs'
-import { getSessions } from '../utils/storage'
+import { JOBS } from '../utils/jobs'
+import { getSessions, getCurrentUser } from '../utils/storage'
 
 const backBtnStyle = {
   position: 'absolute', top: '1rem', left: '1rem',
@@ -9,49 +9,52 @@ const backBtnStyle = {
   cursor: 'pointer', fontSize: '0.875rem', zIndex: 10
 }
 
-// Per-job minimum requirements for graduation
+// Per-job requirements for graduation — keyed by job ID
 const JOB_REQUIREMENTS = {
-  data_entry_clerk:       { minMinutes: 10, passingSessions: 3, wpm: 35, accuracy: 95, kph: 8000 },
-  admin_assistant:        { minMinutes: 10, passingSessions: 3, wpm: 35, accuracy: 95, kph: 7000 },
-  customer_service:       { minMinutes: 10, passingSessions: 3, wpm: 30, accuracy: 92, kph: 6000 },
-  receptionist:           { minMinutes: 10, passingSessions: 3, wpm: 30, accuracy: 92, kph: 6000 },
-  medical_office:         { minMinutes: 15, passingSessions: 4, wpm: 40, accuracy: 97, kph: 9000 },
-  billing_clerk:          { minMinutes: 15, passingSessions: 4, wpm: 38, accuracy: 96, kph: 8500 },
-  accounting_assistant:   { minMinutes: 15, passingSessions: 4, wpm: 38, accuracy: 96, kph: 8500 },
-  warehouse_clerk:        { minMinutes: 10, passingSessions: 3, wpm: 28, accuracy: 90, kph: 5500 },
-  ecommerce_processor:    { minMinutes: 10, passingSessions: 3, wpm: 32, accuracy: 93, kph: 7000 },
-  virtual_assistant:      { minMinutes: 10, passingSessions: 3, wpm: 35, accuracy: 94, kph: 7500 },
+  data_entry_clerk:     { minMinutes: 5,  passingSessions: 3, wpm: 35, accuracy: 95 },
+  admin_assistant:      { minMinutes: 5,  passingSessions: 3, wpm: 40, accuracy: 94 },
+  customer_service:     { minMinutes: 5,  passingSessions: 3, wpm: 40, accuracy: 94 },
+  receptionist:         { minMinutes: 5,  passingSessions: 3, wpm: 35, accuracy: 95 },
+  medical_office:       { minMinutes: 5,  passingSessions: 5, wpm: 35, accuracy: 96 },
+  billing_clerk:        { minMinutes: 3,  passingSessions: 5, wpm: 30, accuracy: 95 },
+  accounting_assistant: { minMinutes: 3,  passingSessions: 5, wpm: 30, accuracy: 96 },
+  warehouse_clerk:      { minMinutes: 3,  passingSessions: 3, wpm: 25, accuracy: 90 },
+  ecommerce_processor:  { minMinutes: 5,  passingSessions: 3, wpm: 35, accuracy: 95 },
+  virtual_assistant:    { minMinutes: 5,  passingSessions: 3, wpm: 40, accuracy: 94 },
 }
 
+// Readiness % based only on real job-specific sessions (never shows fake % for new users)
 function calcJobReadiness(sessions, job) {
-  // Fix 6: only count job-specific sessions (mode === 'job' && jobId === job.id)
   const jobSessions = sessions.filter(s => s.mode === 'job' && s.jobId === job.id)
   if (jobSessions.length === 0) return 0
 
-  const req = JOB_REQUIREMENTS[job.id] || { wpm: 35, accuracy: 95, kph: 7000 }
-
-  const wpmGoal = req.wpm
-  const accGoal = req.accuracy
-  const kphGoal = req.kph
+  const req = JOB_REQUIREMENTS[job.id]
+  if (!req) return 0
 
   const avgWpm = jobSessions.reduce((a, s) => a + (s.wpm || 0), 0) / jobSessions.length
   const avgAcc = jobSessions.reduce((a, s) => a + (s.accuracy || 0), 0) / jobSessions.length
-  const avgKph = jobSessions.reduce((a, s) => a + (s.kph || 0), 0) / jobSessions.length
 
-  const wpmPct = Math.min(avgWpm / wpmGoal, 1)
-  const accPct = Math.min(avgAcc / accGoal, 1)
-  const kphPct = Math.min(avgKph / kphGoal, 1)
+  const wpmPct = req.wpm > 0 ? Math.min(avgWpm / req.wpm, 1) : 1
+  const accPct = Math.min(avgAcc / req.accuracy, 1)
 
-  return Math.round(((wpmPct + accPct + kphPct) / 3) * 100)
+  return Math.round(((wpmPct + accPct) / 2) * 100)
+}
+
+// A session passes if: duration meets min minutes, WPM >= goal, accuracy >= goal
+function sessionPasses(s, req) {
+  const durationMinutes = (s.duration || 0) / 60
+  return (
+    durationMinutes >= req.minMinutes &&
+    (s.wpm || 0) >= req.wpm &&
+    (s.accuracy || 0) >= req.accuracy
+  )
 }
 
 function isGraduated(sessions, job) {
   const req = JOB_REQUIREMENTS[job.id]
   if (!req) return false
   const jobSessions = sessions.filter(s => s.mode === 'job' && s.jobId === job.id)
-  const passing = jobSessions.filter(
-    s => (s.wpm || 0) >= req.wpm && (s.accuracy || 0) >= req.accuracy && (s.kph || 0) >= req.kph
-  )
+  const passing = jobSessions.filter(s => sessionPasses(s, req))
   return passing.length >= req.passingSessions
 }
 
@@ -59,19 +62,17 @@ function getPassingSessions(sessions, job) {
   const req = JOB_REQUIREMENTS[job.id]
   if (!req) return { passing: 0, needed: 3 }
   const jobSessions = sessions.filter(s => s.mode === 'job' && s.jobId === job.id)
-  const passing = jobSessions.filter(
-    s => (s.wpm || 0) >= req.wpm && (s.accuracy || 0) >= req.accuracy && (s.kph || 0) >= req.kph
-  )
+  const passing = jobSessions.filter(s => sessionPasses(s, req))
   return { passing: passing.length, needed: req.passingSessions }
 }
 
 export default function TrainJob() {
   const navigate = useNavigate()
-  const sessions = getSessions()
+  const sessions = getSessions(getCurrentUser())
 
   return (
     <div className="train-job-page" style={{ position: 'relative', minHeight: '100vh' }}>
-      <button onClick={() => navigate('/')} style={backBtnStyle}>&#8592; Back</button>
+      <button onClick={() => navigate(-1)} style={backBtnStyle}>&#8592; Back</button>
 
       <div className="train-job-container">
         <h1 className="page-title">Job Training</h1>
@@ -92,7 +93,7 @@ export default function TrainJob() {
                   borderRadius: '14px', padding: '1.25rem', cursor: 'pointer',
                   transition: 'transform 0.15s, box-shadow 0.15s',
                 }}
-                onClick={() => navigate(`/practice?mode=job&jobId=${job.id}`)}
+                onClick={() => navigate(`/practice?mode=job&job=${job.id}`)}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                   <h3 style={{ margin: 0, fontSize: '1rem', color: '#fff' }}>
@@ -104,13 +105,13 @@ export default function TrainJob() {
                 </div>
 
                 <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: '1.4' }}>
-                  {job.description}
+                  {job.desc}
                 </p>
 
                 {/* Requirements */}
                 {req.wpm && (
                   <p style={{ margin: '0 0 0.5rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>
-                    Target: {req.wpm} WPM &bull; {req.accuracy}% acc &bull; {req.kph?.toLocaleString()} KPH
+                    Target: {req.wpm} WPM &bull; {req.accuracy}% accuracy &bull; {req.minMinutes} min session
                   </p>
                 )}
 
@@ -136,7 +137,7 @@ export default function TrainJob() {
                   <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)' }}>
                     {graduated
                       ? <span style={{ color: '#48c78e' }}>&#127891; Certified!</span>
-                      : `${passing}/${needed} passing sessions`
+                      : `${passing}/${needed} passing sessions needed`
                     }
                   </span>
                   <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)' }}>
@@ -150,4 +151,4 @@ export default function TrainJob() {
       </div>
     </div>
   )
-}
+      }
