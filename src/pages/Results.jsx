@@ -1,89 +1,157 @@
-import { useSearchParams, Link, useNavigate } from 'react-router-dom'
-import { ALL_BADGES } from '../utils/badges.js'
+import { useLocation, useNavigate } from 'react-router-dom'
+
+const backBtnStyle = {
+  position: 'absolute', top: '1rem', left: '1rem',
+  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+  color: '#fff', padding: '0.4rem 1rem', borderRadius: '999px',
+  cursor: 'pointer', fontSize: '0.875rem', zIndex: 10
+}
 
 const getGrade = (score) => {
-  if (score >= 900) return { letter:'A+', cls:'grade-A-plus', msg:"Outstanding! You're performing at a professional level." }
-  if (score >= 800) return { letter:'A',  cls:'grade-A',     msg:"Excellent work! Your speed and accuracy are impressive." }
-  if (score >= 600) return { letter:'B',  cls:'grade-B',     msg:"Good job! Keep practicing to push into the A range." }
-  if (score >= 400) return { letter:'C',  cls:'grade-C',     msg:"Decent effort. Focus on accuracy before speed." }
-  return { letter:'D', cls:'grade-D', msg:"Keep at it! Consistency is the key to improvement." }
+  if (score >= 500) return { letter: 'A+', cls: 'grade-A-plus', msg: 'Outstanding! You\'re typing at a professional level.', points: 500 }
+  if (score >= 380) return { letter: 'A',  cls: 'grade-A',      msg: 'Excellent work! Job-ready speed and accuracy.', points: 380 }
+  if (score >= 280) return { letter: 'B',  cls: 'grade-B',      msg: 'Good job! Keep pushing to reach job-ready level.', points: 280 }
+  if (score >= 180) return { letter: 'C',  cls: 'grade-C',      msg: 'Decent effort. Consistent practice will get you there.', points: 180 }
+  if (score >= 100) return { letter: 'D',  cls: 'grade-D',      msg: 'Keep at it! You\'re building the foundation.', points: 100 }
+  return { letter: 'F', cls: 'grade-D', msg: 'Don\'t give up -- every expert was once a beginner.', points: 0 }
+}
+
+const GRADE_LADDER = [
+  { letter: 'F',  points: 0 },
+  { letter: 'D',  points: 100 },
+  { letter: 'C',  points: 180 },
+  { letter: 'B',  points: 280 },
+  { letter: 'A',  points: 380 },
+  { letter: 'A+', points: 500 },
+]
+
+const getNextGrade = (score) => {
+  const next = GRADE_LADDER.find(g => g.points > score)
+  return next || null
 }
 
 export default function Results() {
-  const [params] = useSearchParams()
+  const location = useLocation()
   const navigate = useNavigate()
-
-  const wpm      = parseInt(params.get('wpm')) || 0
-  const accuracy = parseInt(params.get('accuracy')) || 0
-  const errors   = parseInt(params.get('errors')) || 0
-  const score    = parseInt(params.get('score')) || 0
-  const skill    = params.get('skill') || ''
-  const kph      = parseInt(params.get('kph')) || 0
-  const xp       = parseInt(params.get('xp')) || 0
-  const newBadges = (params.get('badges') || '').split(',').filter(Boolean)
+  const s = location.state || {}
+  const { wpm = 0, accuracy = 100, errors = 0, score = 0, kph = 0, skill = '', mode = '', duration = 60, promptsCompleted = 1 } = s
 
   const grade = getGrade(score)
-  const earnedBadgeDetails = newBadges.map(id => ALL_BADGES.find(b=>b.id===id)).filter(Boolean)
+  const nextGrade = getNextGrade(score)
+
+  // What to improve logic
+  const getImprovementTip = () => {
+    if (wpm >= 35 && accuracy >= 95) {
+      return { icon: '&#127878;', title: 'You\'re on fire!', msg: 'Both speed and accuracy are excellent. Keep it up and push for A+!' }
+    }
+    if (accuracy < 90) {
+      return { icon: '&#127919;', title: 'Focus on Accuracy', msg: `Your accuracy is ${accuracy}%. Slow down slightly and aim for 95%+ before pushing speed. Accuracy matters more than raw speed for data entry.` }
+    }
+    if (wpm < 30) {
+      return { icon: '&#9889;', title: 'Focus on Speed', msg: `Your accuracy is great (${accuracy}%), but speed is ${wpm} WPM. Try to push past 30 WPM by typing familiar words without hesitation.` }
+    }
+    return { icon: '&#128200;', title: 'Keep Pushing', msg: `You're at ${wpm} WPM with ${accuracy}% accuracy. Aim for 35+ WPM and 95%+ accuracy to reach job-ready level.` }
+  }
+
+  const tip = getImprovementTip()
+
+  const wpmForNext = nextGrade
+    ? Math.ceil((nextGrade.points / (accuracy / 100)) / 10)
+    : null
+
+  const modeLabel = mode === 'job' ? 'Job Training' : mode === 'timed' ? 'Timed Practice' : 'Free Practice'
+  const skillLabel = skill ? skill.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'General'
 
   return (
-    <div className="page" style={{maxWidth:700}}>
-      <h1 className="page-title">Session Results</h1>
+    <div className="results-page" style={{ position: 'relative', minHeight: '100vh' }}>
+      <button onClick={() => navigate('/')} style={backBtnStyle}>&#8592; Back</button>
 
-      {/* Grade */}
-      <div className="card card-lg text-center" style={{marginBottom:'1.25rem'}}>
-        <div className={`grade-display ${grade.cls}`}>{grade.letter}</div>
-        <p style={{marginTop:'0.5rem',color:'var(--grey-600)'}}>{grade.msg}</p>
-        <div className="badge badge-blue mt-1">+{xp} XP earned</div>
-      </div>
+      <div className="results-container">
+        <h1 className="results-title">Session Complete!</h1>
 
-      {/* Stats */}
-      <div className="grid grid-4" style={{marginBottom:'1.25rem'}}>
-        {[
-          ['WPM',wpm,'⚡'],
-          ['Accuracy',accuracy+'%','🎯'],
-          ['Errors',errors,'❌'],
-          ['Score',score,'📊'],
-        ].map(([l,v,icon])=>(
-          <div className="stat-card" key={l}>
-            <div style={{fontSize:'1.25rem'}}>{icon}</div>
-            <div className="stat-value">{v}</div>
-            <div className="stat-label">{l}</div>
-          </div>
-        ))}
-      </div>
-
-      {kph > 0 && (
-        <div className="card text-center" style={{marginBottom:'1.25rem'}}>
-          <div className="stat-value">{kph.toLocaleString()}</div>
-          <div className="stat-label">Keystrokes Per Hour (KPH)</div>
+        <div className={`grade-badge ${grade.cls}`}>
+          <span className="grade-letter">{grade.letter}</span>
+          <span className="grade-msg">{grade.msg}</span>
         </div>
-      )}
 
-      {/* New badges */}
-      {earnedBadgeDetails.length > 0 && (
-        <div className="card" style={{marginBottom:'1.25rem'}}>
-          <div className="section-title">🎉 New Badges Earned!</div>
-          <div className="grid grid-4" style={{gap:'0.75rem'}}>
-            {earnedBadgeDetails.map(b=>(
-              <div key={b.id} className="badge-item earned">
-                <div className="badge-item-icon">{b.icon}</div>
-                <div className="badge-item-name">{b.name}</div>
-                <div className="badge-item-desc">{b.desc}</div>
-              </div>
-            ))}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <span className="stat-value">{wpm}</span>
+            <span className="stat-label">WPM</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-value">{accuracy}%</span>
+            <span className="stat-label">Accuracy</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-value">{score}</span>
+            <span className="stat-label">Score</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-value">{errors}</span>
+            <span className="stat-label">Errors</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-value">{kph}</span>
+            <span className="stat-label">KPH</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-value">{promptsCompleted}</span>
+            <span className="stat-label">Prompts Done</span>
           </div>
         </div>
-      )}
 
-      {/* Actions */}
-      <div style={{display:'flex',gap:'0.75rem',flexWrap:'wrap'}}>
-        <button onClick={()=>navigate(-1)} className="btn btn-primary">Practice Again</button>
-        <Link to="/train/skill" className="btn btn-secondary">Choose Skill</Link>
-        <Link to="/progress" className="btn btn-secondary">View Progress</Link>
-        <Link to="/dashboard" className="btn btn-outline">Dashboard</Link>
+        {/* Score Breakdown */}
+        <div className="breakdown-card" style={{
+          background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: '12px', padding: '1.25rem 1.5rem', marginTop: '1.5rem', textAlign: 'left'
+        }}>
+          <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            &#128202; Score Breakdown
+          </h3>
+          <p style={{ margin: 0, fontSize: '1.1rem', color: '#fff', fontFamily: 'monospace' }}>
+            {wpm} WPM &times; {accuracy}% accuracy &times; 10 = <strong>{score} points &rarr; {grade.letter}</strong>
+          </p>
+          {nextGrade && (
+            <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', color: 'rgba(255,255,255,0.55)' }}>
+              To reach <strong style={{ color: 'rgba(255,255,255,0.85)' }}>{nextGrade.letter}</strong>, you need{' '}
+              <strong style={{ color: 'rgba(255,255,255,0.85)' }}>{nextGrade.points} points</strong>
+              {wpmForNext && accuracy > 0 ? ` (~${wpmForNext} WPM at your current accuracy)` : ''}.
+            </p>
+          )}
+        </div>
+
+        {/* What to Improve */}
+        <div className="improvement-card" style={{
+          background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: '12px', padding: '1.25rem 1.5rem', marginTop: '1rem', textAlign: 'left'
+        }}>
+          <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {tip.icon} {tip.title}
+          </h3>
+          <p style={{ margin: 0, fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)', lineHeight: '1.5' }}>
+            {tip.msg}
+          </p>
+        </div>
+
+        <div className="session-meta" style={{ marginTop: '1rem', color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem' }}>
+          {modeLabel} &bull; {skillLabel} &bull; {duration}s session
+        </div>
+
+        <div className="results-actions" style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button className="btn-primary" onClick={() => navigate(-1)}>
+            Practice Again
+          </button>
+          <button className="btn-secondary" onClick={() => navigate('/')}>
+            Home
+          </button>
+          {mode === 'job' && (
+            <button className="btn-secondary" onClick={() => navigate('/train-job')}>
+              Job Training
+            </button>
+          )}
+        </div>
       </div>
-
-      <div className="ad-placeholder">Advertisement</div>
     </div>
   )
 }
