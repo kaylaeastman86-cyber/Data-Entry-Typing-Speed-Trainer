@@ -21,8 +21,16 @@ export default function Dashboard() {
     .sort((a,b) => new Date(earnedBadges[b.id]) - new Date(earnedBadges[a.id]))
     .slice(0, 6)
 
+  // Bug 3 fix: last 5 sessions newest-first
+  const recentSessions = [...sessions].reverse().slice(0, 5)
+
   const today = new Date().toISOString().split('T')[0]
   const dailyDone = JSON.parse(localStorage.getItem('daily_challenges')||'{}')[username]?.[today]
+
+  const formatDate = (iso) => {
+    if (!iso) return '—'
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
 
   return (
     <div className="page" style={{maxWidth:1100}}>
@@ -103,13 +111,44 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Bug 3 fix: Recent Sessions section */}
+      <div className="card" style={{marginBottom:'1.5rem'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
+          <span className="section-title" style={{marginBottom:0}}>Recent Sessions</span>
+          <Link to="/progress" className="btn btn-sm btn-outline">View All</Link>
+        </div>
+        {recentSessions.length === 0 ? (
+          <p className="text-sm text-muted" style={{margin:0}}>No sessions yet — start practicing!</p>
+        ) : (
+          <div style={{display:'flex',flexDirection:'column',gap:'0.5rem'}}>
+            {recentSessions.map((s, i) => (
+              <div key={s.id || i} style={{
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                padding:'0.6rem 0.75rem', borderRadius:'8px',
+                background:'var(--grey-50,#f8fafc)', border:'1px solid var(--grey-200,#e2e8f0)',
+                flexWrap:'wrap', gap:'0.5rem'
+              }}>
+                <span className="text-sm text-muted">{formatDate(s.date)}</span>
+                <span className="text-sm" style={{fontWeight:600}}>{s.wpm} WPM</span>
+                <span className="text-sm">{s.accuracy}% acc</span>
+                <span className="text-sm">{s.score} pts</span>
+                {s.kph > 0 && <span className="text-sm">{s.kph.toLocaleString()} KPH</span>}
+                <span className="text-xs text-muted" style={{textTransform:'capitalize'}}>
+                  {s.mode === 'job' ? 'Job Training' : s.mode === 'timed' ? 'Timed' : 'Practice'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Quick links */}
       <div className="grid grid-4" style={{marginBottom:'1.5rem'}}>
         {[
-          ['/train/job',      '💼', 'Train by Job',    'Practice for a specific job role'],
-          ['/train/skill',    '🎯', 'Train by Skill',  'Drill a specific data type'],
-          ['/progress',       '📈', 'View Progress',   'See your charts and stats'],
-          ['/rewards',        '🏆', 'Rewards',         'Badges, levels, and reports'],
+          ['/train/job', '💼', 'Train by Job', 'Practice for a specific job role'],
+          ['/train/skill', '🎯', 'Train by Skill', 'Drill a specific data type'],
+          ['/progress', '📈', 'View Progress', 'See your charts and stats'],
+          ['/rewards', '🏆', 'Rewards', 'Badges, levels, and reports'],
         ].map(([to, icon, title, desc]) => (
           <Link key={to} to={to} className="job-card" style={{textDecoration:'none'}}>
             <div style={{fontSize:'2rem'}}>{icon}</div>
