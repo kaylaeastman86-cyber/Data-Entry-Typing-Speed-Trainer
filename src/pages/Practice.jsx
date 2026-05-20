@@ -11,16 +11,16 @@ const VOICE_JOB_IDS = ['receptionist', 'customer_service', 'virtual_assistant']
 
 // Bug 6: job mode requires a minimum session length
 const JOB_REQUIREMENTS = {
-  'data_entry_clerk':      { minMinutes: 5 },
-  'admin_assistant':       { minMinutes: 5 },
-  'customer_service':      { minMinutes: 5 },
-  'receptionist':          { minMinutes: 5 },
-  'medical_office':        { minMinutes: 5 },
-  'billing_clerk':         { minMinutes: 3 },
-  'accounting_assistant':  { minMinutes: 3 },
-  'warehouse_clerk':       { minMinutes: 3 },
-  'ecommerce_processor':   { minMinutes: 5 },
-  'virtual_assistant':     { minMinutes: 5 },
+  'data_entry_clerk': { minMinutes: 5 },
+  'admin_assistant': { minMinutes: 5 },
+  'customer_service': { minMinutes: 5 },
+  'receptionist': { minMinutes: 5 },
+  'medical_office': { minMinutes: 5 },
+  'billing_clerk': { minMinutes: 3 },
+  'accounting_assistant': { minMinutes: 3 },
+  'warehouse_clerk': { minMinutes: 3 },
+  'ecommerce_processor': { minMinutes: 5 },
+  'virtual_assistant': { minMinutes: 5 },
 }
 
 const backBtnStyle = {
@@ -81,6 +81,7 @@ export default function Practice() {
   const errorsRef = useRef(0)
   const durationRef = useRef(isJobMode ? (lockedDuration || 300) : 60)
   const promptsCompletedRef = useRef(0)
+  const keystrokesRef = useRef(0)  // Bug 4 fix: track real keystroke count for KPH
 
   const isVoiceJob = mode === 'job' && VOICE_JOB_IDS.includes(jobId)
 
@@ -95,6 +96,7 @@ export default function Practice() {
       setErrors(active.errors || 0); errorsRef.current = active.errors || 0
       setTotalCorrectChars(active.totalCorrectChars || 0); totalCorrectRef.current = active.totalCorrectChars || 0
       setPromptsCompleted(active.promptsCompleted || 0); promptsCompletedRef.current = active.promptsCompleted || 0
+      keystrokesRef.current = active.keystrokes || 0  // Bug 4 fix: restore keystrokes on resume
       setPhase('active')
     }
   }, [])
@@ -128,6 +130,7 @@ export default function Practice() {
     setErrors(0); errorsRef.current = 0
     setTotalCorrectChars(0); totalCorrectRef.current = 0
     setPromptsCompleted(0); promptsCompletedRef.current = 0
+    keystrokesRef.current = 0  // Bug 4 fix: reset keystroke counter on new session
     setPromptRevealed(false)
     setTimeLeft(duration); durationRef.current = duration
     setStartTime(Date.now())
@@ -168,7 +171,7 @@ export default function Practice() {
         ? Math.round((finalCorrect / (finalCorrect + finalErrors)) * 100)
         : 100
       const score = Math.round(wpm * (accuracy / 100) * 10)
-      const kph = skillKey.current === 'tenKey' ? Math.round((finalCorrect * 3600) / dur) : 0
+      const kph = Math.round((keystrokesRef.current / dur) * 3600)  // Bug 4 fix: real KPH from keystroke counter
       const prevSessions = getSessions(username)
       const prevBestWPM = prevSessions.length ? Math.max(...prevSessions.map(s => s.wpm || 0)) : 0
       const xpEarned = calcSessionXP(wpm, accuracy, wpm > prevBestWPM)
@@ -219,6 +222,7 @@ export default function Practice() {
     if (phase !== 'active') return
     const val = e.target.value
     if (val.length > typedRef.current.length) {
+      keystrokesRef.current += 1  // Bug 4 fix: count every keystroke
       const i = val.length - 1
       if (val[i] !== promptRef.current[i]) {
         setErrors(prev => prev + 1)
@@ -234,7 +238,8 @@ export default function Practice() {
     saveActiveSession({
       prompt: promptRef.current, typed: val, timeLeft, duration: durationRef.current,
       skill: skillKey.current, mode, errors: errorsRef.current,
-      totalCorrectChars: totalCorrectRef.current, promptsCompleted: promptsCompletedRef.current
+      totalCorrectChars: totalCorrectRef.current, promptsCompleted: promptsCompletedRef.current,
+      keystrokes: keystrokesRef.current  // Bug 4 fix: persist keystroke count for session restore
     })
   }
 
@@ -265,8 +270,8 @@ export default function Practice() {
           <h1 className="page-title">Ready to Train?</h1>
           <p className="page-subtitle">
             {mode === 'job' ? `Job: ${JOBS.find(j => j.id === jobId)?.title}` :
-              mode === 'daily' ? 'Daily Challenge' :
-                `Skill: ${skillParam.charAt(0).toUpperCase() + skillParam.slice(1)}`}
+             mode === 'daily' ? 'Daily Challenge' :
+             `Skill: ${skillParam.charAt(0).toUpperCase() + skillParam.slice(1)}`}
           </p>
 
           {/* Bug 6 fix: lock duration selector in job mode */}
