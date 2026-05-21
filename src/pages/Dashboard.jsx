@@ -2,41 +2,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getCurrentUser, getUserProfile, getSessions, getActiveSession } from '../utils/storage.js'
 import { getTotalXP, getLevelInfo } from '../utils/xp.js'
 import { getEarnedBadges, ALL_BADGES, getCalcStreak } from '../utils/badges.js'
-import { JOBS } from '../utils/jobs.js'
-
-// Passing-session targets per job (mirrors TrainJob.jsx)
-const JOB_PASS_SESSIONS = {
-data_entry_clerk: 3, admin_assistant: 3, customer_service: 3,
-receptionist: 3, medical_office: 5, billing_clerk: 5,
-accounting_assistant: 5, warehouse_clerk: 3, ecommerce_processor: 3, virtual_assistant: 3,
-}
-
-const getLessonProgress = () => {
-try { return JSON.parse(localStorage.getItem('hol_lesson_progress') || '{}') }
-catch { return {} }
-}
-
-const getTrackName = (trackKey) => {
-if (trackKey.startsWith('job_')) {
-const jId = trackKey.replace('job_', '')
-const job = JOBS.find(j => j.id === jId)
-return job ? `${job.icon} ${job.title}` : trackKey
-}
-if (trackKey === 'daily') return '📅 Daily Challenge'
-if (trackKey.startsWith('free_')) {
-const skill = trackKey.replace('free_', '')
-return `🎯 Free Practice (${skill.charAt(0).toUpperCase() + skill.slice(1)})`
-}
-return trackKey
-}
-
-const getTrackTarget = (trackKey) => {
-if (trackKey.startsWith('job_')) {
-const jId = trackKey.replace('job_', '')
-return JOB_PASS_SESSIONS[jId] || 5
-}
-return 10 // milestone target for free / daily tracks
-}
 
 export default function Dashboard() {
 const username = getCurrentUser()
@@ -62,35 +27,9 @@ const recentSessions = [...sessions].reverse().slice(0, 5)
 const today = new Date().toISOString().split('T')[0]
 const dailyDone = JSON.parse(localStorage.getItem('daily_challenges')||'{}')[username]?.[today]
 
-// ── Lesson progress (hol_lesson_progress) ────────────────────────────────
-const lessonProgress = getLessonProgress()
-
-// Group individual lesson entries by track key
-const trackMap = {}
-Object.entries(lessonProgress).forEach(([key, val]) => {
-// key format: job_data_entry_clerk_2, free_typing_0, daily_1, etc.
-// last segment after the final underscore+digit is the index
-const lastUnderscore = key.lastIndexOf('_')
-const trackKey = key.slice(0, lastUnderscore)
-if (!trackMap[trackKey]) trackMap[trackKey] = []
-trackMap[trackKey].push({ lessonKey: key, lessonIndex: parseInt(key.slice(lastUnderscore + 1), 10), ...val })
-})
-
-// Sort tracks by most recently completed lesson
-const sortedTracks = Object.entries(trackMap).sort((a, b) => {
-const latestA = Math.max(...a[1].map(l => l.completedAt || 0))
-const latestB = Math.max(...b[1].map(l => l.completedAt || 0))
-return latestB - latestA
-})
-
 const formatDate = (iso) => {
 if (!iso) return '—'
 return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-const formatLessonDate = (ts) => {
-if (!ts) return '—'
-return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 return (
@@ -172,6 +111,35 @@ return (
 </div>
 )}
 
+{/* Lesson Progress */}
+{sessions.length > 0 && (() => {
+const byMode = sessions.reduce((acc, s) => {
+const key = s.mode || 'practice';
+if (!acc[key]) acc[key] = [];
+acc[key].push(s);
+return acc;
+}, {});
+return (
+<div style={{marginBottom:'2rem'}}>
+<h2 style={{fontSize:'1.25rem',fontWeight:700,marginBottom:'1rem'}}>📊 Lesson Progress</h2>
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:'1rem'}}>
+{Object.entries(byMode).map(([mode, modeSessions]) => {
+const best = modeSessions.reduce((b, s) => s.wpm > (b?.wpm||0) ? s : b, null);
+const avgAcc = Math.round(modeSessions.reduce((sum,s) => sum+(s.accuracy||0),0)/modeSessions.length);
+return (
+<div key={mode} style={{background:'rgba(139,92,246,0.08)',border:'1px solid rgba(139,92,246,0.2)',borderRadius:'12px',padding:'1rem'}}>
+<div style={{fontWeight:700,textTransform:'capitalize',marginBottom:'0.5rem'}}>{mode === 'job' ? '💼 Job Mode' : mode === 'practice' ? '⌨️ Practice' : '🎯 ' + mode}</div>
+<div style={{fontSize:'0.85rem',color:'var(--text-muted)',marginBottom:'0.25rem'}}>{modeSessions.length} session{modeSessions.length!==1?'s':''} completed</div>
+<div style={{fontSize:'1.1rem',fontWeight:700,color:'#a78bfa'}}>Best: {best?.wpm||0} WPM</div>
+<div style={{fontSize:'0.85rem',color:'var(--text-muted)'}}>Avg accuracy: {avgAcc}%</div>
+</div>
+);
+})}
+</div>
+</div>
+);
+})()}
+
 {/* Bug 3 fix: Recent Sessions section */}
 <div className="card" style={{marginBottom:'1.5rem'}}>
 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
@@ -202,68 +170,6 @@ flexWrap:'wrap', gap:'0.5rem'
 </div>
 )}
 </div>
-
-{/* ── Lesson Progress (Feature 2) ──────────────────────────────────────── */}
-{sortedTracks.length > 0 && (
-<div className="card" style={{marginBottom:'1.5rem'}}>
-<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
-<span className="section-title" style={{marginBottom:0}}>📚 Lesson Progress</span>
-<span className="text-sm text-muted">{Object.keys(lessonProgress).length} lessons completed</span>
-</div>
-<div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
-{sortedTracks.map(([trackKey, lessons]) => {
-const target  = getTrackTarget(trackKey)
-const count   = lessons.length
-const pct     = Math.min(100, Math.round((count / target) * 100))
-const isGoalMet = count >= target
-const barColor = isGoalMet ? '#48c78e' : pct >= 50 ? '#3b82f6' : '#6366f1'
-// Last 3 completed lessons, newest first
-const recent = [...lessons]
-.sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
-.slice(0, 3)
-return (
-<div key={trackKey}>
-{/* Track header */}
-<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.4rem'}}>
-<span style={{fontWeight:600,fontSize:'0.95rem',color:'var(--grey-900,#111827)'}}>{getTrackName(trackKey)}</span>
-<span style={{fontSize:'0.8rem',color:isGoalMet?'#48c78e':'var(--grey-500,#6b7280)',fontWeight:isGoalMet?600:400}}>
-{isGoalMet ? `✓ Goal reached! (${count} lessons)` : `${count} of ${target} lessons`}
-</span>
-</div>
-{/* Progress bar */}
-<div style={{height:'6px',background:'var(--grey-200,#e2e8f0)',borderRadius:'3px',overflow:'hidden',marginBottom:'0.6rem'}}>
-<div style={{
-height:'100%', borderRadius:'3px', width:`${pct}%`,
-background: barColor, transition:'width 0.4s ease'
-}} />
-</div>
-{/* Last 3 lessons */}
-<div style={{display:'flex',flexDirection:'column',gap:'0.3rem'}}>
-{recent.map((lesson) => (
-<div key={lesson.lessonKey} style={{
-display:'flex',alignItems:'center',justifyContent:'space-between',
-fontSize:'0.8rem',
-padding:'0.3rem 0.65rem',
-background:'var(--grey-50,#f8fafc)',
-border:'1px solid var(--grey-200,#e2e8f0)',
-borderRadius:'6px',
-flexWrap:'wrap',gap:'0.4rem'
-}}>
-<span style={{color:'var(--grey-600,#4b5563)'}}>
-Lesson {lesson.lessonIndex + 1}
-</span>
-<span style={{fontWeight:600,color:'var(--grey-800,#1f2937)'}}>{lesson.wpm} WPM</span>
-<span style={{color:'var(--grey-600,#4b5563)'}}>{lesson.accuracy}% acc</span>
-<span style={{color:'var(--grey-400,#9ca3af)'}}>{formatLessonDate(lesson.completedAt)}</span>
-</div>
-))}
-</div>
-</div>
-)
-})}
-</div>
-</div>
-)}
 
 {/* Quick links */}
 <div className="grid grid-4" style={{marginBottom:'1.5rem'}}>
