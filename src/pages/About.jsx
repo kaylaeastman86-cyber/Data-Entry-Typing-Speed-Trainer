@@ -64,7 +64,7 @@ export default function About() {
         <h2 style={{ color: 'var(--navy)', marginBottom: '0.75rem' }}>Contact</h2>
         <p style={{ marginBottom: '1rem' }}>
           Have feedback, found a bug, or just want to say hi? Reach us at{' '}
-          <a href="mailto:kaylaeastman86@gmail.com" className="link">kaylaeastman86@gmail.com</a>.
+          <a href="mailto:lushellabrands@gmail.com" className="link">lushellabrands@gmail.com</a>.
         </p>
 
         <hr className="divider" />
