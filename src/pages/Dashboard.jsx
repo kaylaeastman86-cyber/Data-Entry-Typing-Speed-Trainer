@@ -187,7 +187,7 @@ flexWrap:'wrap', gap:'0.5rem'
 ))}
 </div>
 
-<div className="ad-placeholder">Advertisement</div>
+{/* AdSense slot — add when publisher ID received */}
 </div>
 )
 }
