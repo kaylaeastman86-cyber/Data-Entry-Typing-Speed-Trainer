@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { getCurrentUser } from './utils/storage.js'
 import Nav from './components/Nav.jsx'
+import Footer from './components/Footer.jsx'
+import CookieBanner from './components/CookieBanner.jsx'
 
 // Pages
 import Landing       from './pages/Landing.jsx'
@@ -21,6 +23,8 @@ import Profile       from './pages/Profile.jsx'
 import About         from './pages/About.jsx'
 import Privacy       from './pages/Privacy.jsx'
 import Terms         from './pages/Terms.jsx'
+import Contact       from './pages/Contact.jsx'
+import Tips          from './pages/Tips.jsx'
 
 function RequireAuth({ children }) {
   const user = getCurrentUser()
@@ -30,7 +34,7 @@ function RequireAuth({ children }) {
 
 export default function App() {
   const location = useLocation()
-  const isPublic = ['/', '/login', '/create-account', '/forgot-password', '/about', '/privacy', '/terms'].includes(location.pathname)
+  const isPublic = ['/', '/login', '/create-account', '/forgot-password', '/about', '/privacy', '/terms', '/contact', '/tips'].includes(location.pathname)
 
   return (
     <>
@@ -43,6 +47,8 @@ export default function App() {
         <Route path="/about" element={<About />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/tips" element={<Tips />} />
         <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
         <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
         <Route path="/train/job" element={<RequireAuth><TrainJob /></RequireAuth>} />
@@ -56,6 +62,8 @@ export default function App() {
         <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Footer />
+      <CookieBanner />
     </>
   )
 }
