@@ -57,7 +57,7 @@ export default function Terms() {
         <p>We reserve the right to update these Terms at any time. Continued use of the service after changes are posted constitutes your acceptance of the updated Terms. We will update the effective date above when changes are made.</p>
 
         <h2 style={{ color: 'var(--navy)', margin: '1.5rem 0 0.5rem' }}>12. Contact</h2>
-        <p>For questions about these Terms, contact us at: <a href="mailto:kaylaeastman86@gmail.com" className="link">kaylaeastman86@gmail.com</a></p>
+        <p>For questions about these Terms, contact us at: <a href="mailto:lushellabrands@gmail.com" className="link">lushellabrands@gmail.com</a></p>
 
         <hr className="divider" />
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
