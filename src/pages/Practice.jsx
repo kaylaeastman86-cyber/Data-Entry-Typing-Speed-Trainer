@@ -36,47 +36,6 @@ backdropFilter: 'blur(4px)',
 zIndex: 10
 }
 
-// ── Draft helpers (hol_session_draft) ─────────────────────────────────────
-const DRAFT_KEY = 'hol_session_draft'
-const MAX_DRAFT_AGE_MS = 48 * 60 * 60 * 1000 // 48 hours — older drafts silently discarded
-
-const getSessionDraft = () => {
-  try {
-    const raw = localStorage.getItem(DRAFT_KEY)
-    if (!raw) return null
-    const draft = JSON.parse(raw)
-    if (!draft || !draft.savedAt) return null
-    if (Date.now() - draft.savedAt > MAX_DRAFT_AGE_MS) {
-      localStorage.removeItem(DRAFT_KEY)
-      return null
-    }
-    return draft
-  } catch { return null }
-}
-const saveSessionDraft = (data) =>
-  localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...data, savedAt: Date.now() }))
-const clearSessionDraft = () => localStorage.removeItem(DRAFT_KEY)
-
-const draftTimeAgo = (ts) => {
-  if (!ts) return 'earlier'
-  const diff = Date.now() - ts
-  const mins  = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days  = Math.floor(diff / 86400000)
-  if (days >= 1) return days === 1 ? 'yesterday' : `${days} days ago`
-  if (hours >= 1) return `${hours}h ago`
-  if (mins  >= 1) return `${mins}m ago`
-  return 'just now'
-}
-
-// ── Lesson-progress helpers (hol_lesson_progress) ─────────────────────────
-const getLessonProgress = () => {
-  try { return JSON.parse(localStorage.getItem('hol_lesson_progress') || '{}') }
-  catch { return {} }
-}
-const saveLessonProgress = (data) =>
-  localStorage.setItem('hol_lesson_progress', JSON.stringify(data))
-
 export default function Practice() {
 const [params] = useSearchParams()
 const navigate = useNavigate()
@@ -111,14 +70,10 @@ const [totalCorrectChars, setTotalCorrectChars] = useState(0)
 const [promptsCompleted, setPromptsCompleted] = useState(0)
 const [listenMode, setListenMode] = useState(false)
 const [promptRevealed, setPromptRevealed] = useState(false)
-
-// ── New: resume banner state ───────────────────────────────────────────────
-const [showResumeBanner, setShowResumeBanner] = useState(false)
-const [resumeDraft, setResumeDraft] = useState(null)
+const [activeSession] = useState(() => getActiveSession())
 
 const inputRef = useRef(null)
 const intervalRef = useRef(null)
-const draftIntervalRef = useRef(null)
 const skillKey = useRef(getSkillKey())
 // Refs for safe access inside async timer callbacks
 const typedRef = useRef('')
@@ -127,98 +82,25 @@ const totalCorrectRef = useRef(0)
 const errorsRef = useRef(0)
 const durationRef = useRef(isJobMode ? (lockedDuration || 300) : 60)
 const promptsCompletedRef = useRef(0)
-const keystrokesRef = useRef(0)         // Bug 4 fix: track real keystroke count for KPH
-const timeLeftRef = useRef(isJobMode ? (lockedDuration || 300) : 60) // kept in sync by timer
+const keystrokesRef = useRef(0) // Bug 4 fix: track real keystroke count for KPH
 
 const isVoiceJob = mode === 'job' && VOICE_JOB_IDS.includes(jobId)
 
-// ── Apply a saved draft into all component state (used on resume) ─────────
-const applyDraft = (draft) => {
-const p = draft.prompt || ''
-setPrompt(p); promptRef.current = p
-setTyped(draft.typedSoFar || ''); typedRef.current = draft.typedSoFar || ''
-const tl = typeof draft.timeLeft === 'number' ? draft.timeLeft : (draft.duration || 60)
-setTimeLeft(tl); timeLeftRef.current = tl
-setDuration(draft.duration || 60); durationRef.current = draft.duration || 60
-setErrors(draft.errors || 0); errorsRef.current = draft.errors || 0
-setTotalCorrectChars(draft.totalCorrectChars || 0); totalCorrectRef.current = draft.totalCorrectChars || 0
-setPromptsCompleted(draft.promptsCompleted || 0); promptsCompletedRef.current = draft.promptsCompleted || 0
-keystrokesRef.current = draft.keystrokes || 0
-setShowResumeBanner(false)
-setResumeDraft(null)
-setPhase('active')
-setTimeout(() => inputRef.current?.focus(), 50)
-}
-
-// ── On mount: restore active_session (existing) OR check for draft ────────
 useEffect(() => {
-// 1. Existing active_session restore (unchanged behaviour)
 const active = getActiveSession()
 if (active && mode === active.mode && skillParam === active.skill) {
 const p = active.prompt || ''
 setPrompt(p); promptRef.current = p
 setTyped(active.typed || ''); typedRef.current = active.typed || ''
-const tl = active.timeLeft || 60
-setTimeLeft(tl); timeLeftRef.current = tl
+setTimeLeft(active.timeLeft || 60)
 setDuration(active.duration || 60); durationRef.current = active.duration || 60
 setErrors(active.errors || 0); errorsRef.current = active.errors || 0
 setTotalCorrectChars(active.totalCorrectChars || 0); totalCorrectRef.current = active.totalCorrectChars || 0
 setPromptsCompleted(active.promptsCompleted || 0); promptsCompletedRef.current = active.promptsCompleted || 0
 keystrokesRef.current = active.keystrokes || 0 // Bug 4 fix: restore keystrokes on resume
-setPhase('active')
-return
-}
-
-// 2. Pending auto-resume flag set by handleResume (cross-URL navigation)
-const pendingResume = sessionStorage.getItem('hol_pending_resume')
-const draft = getSessionDraft()
-if (pendingResume && draft) {
-sessionStorage.removeItem('hol_pending_resume')
-applyDraft(draft)
-clearSessionDraft()
-return
-}
-
-// 3. Show resume banner if a valid draft exists
-if (draft) {
-setResumeDraft(draft)
-setShowResumeBanner(true)
+// Stay in setup to show resume prompt instead of auto-resuming
 }
 }, [])
-
-// ── Resume / Start-fresh handlers ─────────────────────────────────────────
-const handleResume = () => {
-if (!resumeDraft) return
-const draftMode  = resumeDraft.mode      || 'skill'
-const draftJob   = resumeDraft.jobType   || ''
-const draftSkill = resumeDraft.skillParam || 'typing'
-
-const modeMatches  = draftMode === mode
-const jobMatches   = !isJobMode || draftJob === jobId
-const skillMatches = isJobMode  || draftSkill === skillParam
-
-if (modeMatches && jobMatches && skillMatches) {
-// Same URL context — load state directly without navigating
-applyDraft(resumeDraft)
-clearSessionDraft()
-} else {
-// Different URL — navigate to the right page; applyDraft fires on next mount
-sessionStorage.setItem('hol_pending_resume', '1')
-if (draftMode === 'job') {
-navigate(`/practice?mode=job&job=${draftJob}`)
-} else if (draftMode === 'daily') {
-navigate('/practice?mode=daily')
-} else {
-navigate(`/practice?mode=${draftMode}&skill=${draftSkill}`)
-}
-}
-}
-
-const handleStartFresh = () => {
-clearSessionDraft()
-setShowResumeBanner(false)
-setResumeDraft(null)
-}
 
 const pickPrompt = (useVoice) => {
 if (useVoice && voiceCallScenarios && voiceCallScenarios.length) {
@@ -243,7 +125,6 @@ window.speechSynthesis.speak(utterance)
 }
 
 const startSession = (useVoice = false) => {
-clearSessionDraft() // discard any leftover draft on explicit new start
 const p = pickPrompt(useVoice)
 setPrompt(p); promptRef.current = p
 setTyped(''); typedRef.current = ''
@@ -252,7 +133,7 @@ setTotalCorrectChars(0); totalCorrectRef.current = 0
 setPromptsCompleted(0); promptsCompletedRef.current = 0
 keystrokesRef.current = 0 // Bug 4 fix: reset keystroke counter on new session
 setPromptRevealed(false)
-setTimeLeft(duration); timeLeftRef.current = duration; durationRef.current = duration
+setTimeLeft(duration); durationRef.current = duration
 setStartTime(Date.now())
 setListenMode(useVoice)
 setPhase('active')
@@ -262,92 +143,39 @@ setTimeout(() => speakPrompt(p), 300)
 setTimeout(() => inputRef.current?.focus(), 50)
 }
 
-// ── Timer (unchanged logic, now also keeps timeLeftRef in sync) ───────────
 useEffect(() => {
 if (phase === 'active') {
 if (!startTime) setStartTime(Date.now())
 intervalRef.current = setInterval(() => {
 setTimeLeft(prev => {
-const next = prev <= 1 ? 0 : prev - 1
-timeLeftRef.current = next // keep ref in sync for draft saves
-if (next <= 0) {
+if (prev <= 1) {
 clearInterval(intervalRef.current)
 setPhase('done')
 return 0
 }
-return next
+return prev - 1
 })
 }, 1000)
 }
 return () => clearInterval(intervalRef.current)
 }, [phase])
 
-// ── Draft auto-save every 5 seconds while session is active ──────────────
-useEffect(() => {
-if (phase === 'active') {
-draftIntervalRef.current = setInterval(() => {
-const elapsed  = durationRef.current - timeLeftRef.current
-const correct  = totalCorrectRef.current
-const errs     = errorsRef.current
-const liveWpm  = correct > 0 ? Math.round((correct / 5) / Math.max(1, elapsed / 60)) : 0
-const liveAcc  = (correct + errs) > 0 ? Math.round((correct / (correct + errs)) * 100) : 100
-saveSessionDraft({
-mode,
-jobType:        jobId || '',
-skillParam:     skillKey.current,
-typedSoFar:     typedRef.current,
-timeLeft:       timeLeftRef.current,
-elapsedSeconds: elapsed,
-wpm:            liveWpm,
-accuracy:       liveAcc,
-keystrokes:     keystrokesRef.current,
-errors:         errs,
-totalCorrectChars: correct,
-promptsCompleted:  promptsCompletedRef.current,
-prompt:         promptRef.current,
-duration:       durationRef.current,
-})
-}, 5000)
-} else {
-clearInterval(draftIntervalRef.current)
-}
-return () => clearInterval(draftIntervalRef.current)
-}, [phase])
-
-// ── Phase 'done': record lesson, clear draft, navigate to Results ─────────
 useEffect(() => {
 if (phase === 'done') {
 clearActiveSession()
-clearSessionDraft() // clear draft on normal completion so resume prompt doesn't reappear
-
 const lastCorrect = [...typedRef.current].filter((c, i) => c === promptRef.current[i]).length
 const finalCorrect = totalCorrectRef.current + lastCorrect
-const finalErrors  = errorsRef.current
-const dur          = durationRef.current
-const wpm      = Math.round((finalCorrect / 5) / (dur / 60))
+const finalErrors = errorsRef.current
+const dur = durationRef.current
+const wpm = Math.round((finalCorrect / 5) / (dur / 60))
 const accuracy = (finalCorrect + finalErrors) > 0
 ? Math.round((finalCorrect / (finalCorrect + finalErrors)) * 100)
 : 100
 const score = Math.round(wpm * (accuracy / 100) * 10)
-const kph   = Math.round((keystrokesRef.current / dur) * 3600) // Bug 4 fix: real KPH
-
-// ── Feature 2: save lesson completion to hol_lesson_progress ─────────
-try {
-const trackKey = mode === 'job' && jobId
-? `job_${jobId}`
-: mode === 'daily'
-? 'daily'
-: `free_${skillKey.current}`
-const progress    = getLessonProgress()
-const lessonCount = Object.keys(progress).filter(k => k.startsWith(trackKey + '_')).length
-const lessonKey   = `${trackKey}_${lessonCount}`
-progress[lessonKey] = { completedAt: Date.now(), wpm, accuracy }
-saveLessonProgress(progress)
-} catch (e) { /* non-fatal — don't block navigation */ }
-
+const kph = Math.round((keystrokesRef.current / dur) * 3600) // Bug 4 fix: real KPH from keystroke counter
 const prevSessions = getSessions(username)
-const prevBestWPM  = prevSessions.length ? Math.max(...prevSessions.map(s => s.wpm || 0)) : 0
-const xpEarned     = calcSessionXP(wpm, accuracy, wpm > prevBestWPM)
+const prevBestWPM = prevSessions.length ? Math.max(...prevSessions.map(s => s.wpm || 0)) : 0
+const xpEarned = calcSessionXP(wpm, accuracy, wpm > prevBestWPM)
 addXP(username, xpEarned)
 const newSession = {
 wpm, accuracy, errors: finalErrors, score, kph,
@@ -389,27 +217,6 @@ setTyped('')
 setPromptRevealed(false)
 if (listenMode) setTimeout(() => speakPrompt(nextP), 200)
 setTimeout(() => inputRef.current?.focus(), 20)
-
-// Also save draft on each completed prompt (covers between 5-second intervals)
-const elapsed = durationRef.current - timeLeftRef.current
-const correct = totalCorrectRef.current
-const errs    = errorsRef.current
-saveSessionDraft({
-mode,
-jobType:        jobId || '',
-skillParam:     skillKey.current,
-typedSoFar:     '',
-timeLeft:       timeLeftRef.current,
-elapsedSeconds: elapsed,
-wpm:  correct > 0 ? Math.round((correct / 5) / Math.max(1, elapsed / 60)) : 0,
-accuracy: (correct + errs) > 0 ? Math.round((correct / (correct + errs)) * 100) : 100,
-keystrokes:       keystrokesRef.current,
-errors:           errs,
-totalCorrectChars: correct,
-promptsCompleted:  promptsCompletedRef.current,
-prompt:   nextP,
-duration: durationRef.current,
-})
 }
 
 const handleInput = (e) => {
@@ -459,55 +266,6 @@ return (
 <div className="keyboard-banner">&#9000;&#65039; Best used with a physical keyboard</div>
 <div style={{ height: '1rem' }} />
 
-{/* ── Resume Banner (Feature 1) ──────────────────────────────────── */}
-{showResumeBanner && resumeDraft && phase === 'setup' && (
-<div style={{
-background: 'rgba(99,102,241,0.15)',
-border: '1px solid rgba(99,102,241,0.45)',
-borderRadius: '12px',
-padding: '1rem 1.25rem',
-marginBottom: '1.25rem',
-display: 'flex',
-alignItems: 'center',
-justifyContent: 'space-between',
-flexWrap: 'wrap',
-gap: '0.75rem',
-}}>
-<div>
-<div style={{ fontWeight: 600, marginBottom: '0.2rem', color: '#fff' }}>
-📝 Unfinished session from {draftTimeAgo(resumeDraft.savedAt)}
-</div>
-<div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
-{resumeDraft.mode === 'job'
-? `Job: ${JOBS.find(j => j.id === resumeDraft.jobType)?.title || resumeDraft.jobType}`
-: resumeDraft.mode === 'daily'
-? 'Daily Challenge'
-: `Skill: ${(resumeDraft.skillParam || 'typing').charAt(0).toUpperCase() + (resumeDraft.skillParam || 'typing').slice(1)}`}
-{resumeDraft.wpm > 0 && ` · ${resumeDraft.wpm} WPM · ${resumeDraft.accuracy}% acc`}
-{typeof resumeDraft.timeLeft === 'number' && ` · ${formatTime(resumeDraft.timeLeft)} remaining`}
-</div>
-</div>
-<div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-<button
-style={{
-background: 'rgba(99,102,241,0.8)', color: '#fff',
-border: '1px solid rgba(99,102,241,0.6)', borderRadius: '8px',
-padding: '0.4rem 1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem'
-}}
-onClick={handleResume}
->Resume &#8594;</button>
-<button
-style={{
-background: 'transparent', color: 'rgba(255,255,255,0.7)',
-border: '1px solid rgba(255,255,255,0.25)', borderRadius: '8px',
-padding: '0.4rem 1rem', cursor: 'pointer', fontSize: '0.85rem'
-}}
-onClick={handleStartFresh}
->Start Fresh</button>
-</div>
-</div>
-)}
-
 {phase === 'setup' && (
 <div className="card card-lg" style={{ textAlign: 'center' }}>
 <h1 className="page-title">Ready to Train?</h1>
@@ -537,6 +295,16 @@ style={{ background: duration === d ? 'var(--blue)' : 'var(--grey-200)', color: 
 {d === 60 ? '1 min' : d === 180 ? '3 min' : '5 min'}
 </button>
 ))}
+</div>
+</div>
+)}
+
+{activeSession && activeSession.mode === mode && (
+<div style={{marginBottom:'1rem',padding:'1rem',background:'rgba(139,92,246,0.1)',borderRadius:'8px',border:'1px solid rgba(139,92,246,0.3)'}}>
+<p style={{marginBottom:'0.5rem',color:'#a78bfa'}}>&#128221; You have an unfinished session. Resume where you left off?</p>
+<div style={{display:'flex',gap:'0.5rem',justifyContent:'center'}}>
+<button className="btn btn-primary btn-sm" onClick={() => setPhase('active')}>Resume &#8594;</button>
+<button className="btn btn-outline btn-sm" onClick={() => { clearActiveSession(); setPhase('active'); }}>Start Fresh</button>
 </div>
 </div>
 )}
@@ -617,7 +385,7 @@ spellCheck="false"
 ? <button className="btn btn-secondary" onClick={() => { clearInterval(intervalRef.current); setPhase('paused') }}>&#9208; Pause</button>
 : <button className="btn btn-primary" onClick={() => { setPhase('active'); inputRef.current?.focus() }}>&#9654; Resume</button>
 }
-<button className="btn btn-outline" onClick={() => { clearInterval(intervalRef.current); clearActiveSession(); navigate(-1) }}>&#10005; Quit</button>
+<button className="btn btn-outline" onClick={() => { clearInterval(intervalRef.current); navigate(-1) }}>&#10005; Quit</button>
 </div>
 
 {phase === 'paused' && (
