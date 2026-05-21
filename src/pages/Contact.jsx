@@ -20,11 +20,11 @@ export default function Contact() {
         }}>
           <p style={{ fontSize: '1.05rem', marginBottom: '0.5rem', fontWeight: 600 }}>Email Us Directly</p>
           <a
-            href="mailto:kaylaeastman86@gmail.com?subject=Data Entry Speed Trainer Feedback"
+            href="mailto:lushellabrands@gmail.com?subject=Data Entry Speed Trainer Feedback"
             className="link"
             style={{ fontSize: '1.05rem', fontWeight: 500 }}
           >
-            kaylaeastman86@gmail.com
+            lushellabrands@gmail.com
           </a>
         </div>
 
@@ -53,7 +53,7 @@ export default function Contact() {
           </div>
 
           <a
-            href="mailto:kaylaeastman86@gmail.com?subject=Data Entry Speed Trainer Feedback"
+            href="mailto:lushellabrands@gmail.com?subject=Data Entry Speed Trainer Feedback"
             style={{
               display: 'inline-block',
               padding: '0.6rem 1.5rem',
