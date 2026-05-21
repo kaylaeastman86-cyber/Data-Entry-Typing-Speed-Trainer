@@ -59,7 +59,7 @@ export default function Privacy() {
         <p>We may update this Privacy Policy from time to time. Any changes will be posted on this page with an updated effective date. Continued use of the service after changes constitutes your acceptance of the updated policy.</p>
 
         <h2 style={{ color: 'var(--navy)', margin: '1.5rem 0 0.5rem' }}>10. Contact Us</h2>
-        <p>If you have questions about this Privacy Policy, please contact us at: <a href="mailto:kaylaeastman86@gmail.com" className="link">kaylaeastman86@gmail.com</a></p>
+        <p>If you have questions about this Privacy Policy, please contact us at: <a href="mailto:lushellabrands@gmail.com" className="link">lushellabrands@gmail.com</a></p>
 
         <hr className="divider" />
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
